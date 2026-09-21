@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-
+#include<deque>
 class Reader;
 class Writer;
 
@@ -25,6 +25,11 @@ protected:
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
   uint64_t capacity_;
   bool error_ {};
+  std::deque<std::string> chunks_ {};
+  uint64_t front_offset_{};//{}代表默认初始化，这里初始化为0
+  uint64_t bytes_pushed_{};
+  uint64_t bytes_popped_{};
+  bool closed_{};//初始化为false
 };
 
 class Writer : public ByteStream

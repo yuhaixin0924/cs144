@@ -4,13 +4,26 @@
 #include <iostream>
 #include <span>
 #include <string>
-
+#include<vector>
 using namespace std;
 
 void get_URL( const string& host, const string& path )
 {
-  cerr << "Function called: get_URL(" << host << ", " << path << ")\n";
-  cerr << "Warning: get_URL() has not been implemented yet.\n";
+  // cerr << "Function called: get_URL(" << host << ", " << path << ")\n";
+  // cerr << "Warning: get_URL() has not been implemented yet.\n";
+  TCPSocket socket;//创建 TCP 套接字
+  Address address=Address(host,"http");//把域名和服务名解析为地址
+  socket.connect(address);//连接服务器
+  const string request = "GET " + path + " HTTP/1.1\r\n"
+                         "Host: " + host + "\r\n"
+                         "Connection: close\r\n\r\n";
+  string response;
+  socket.write(request);
+  while ( !socket.eof() ) {
+    socket.read(response);
+    cout<<response;
+  }
+
 }
 
 int main( int argc, char* argv[] )
