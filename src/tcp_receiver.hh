@@ -1,5 +1,5 @@
 #pragma once
-
+#include <optional>
 #include "reassembler.hh"
 #include "tcp_receiver_message.hh"
 #include "tcp_sender_message.hh"
@@ -27,4 +27,5 @@ public:
 
 private:
   Reassembler reassembler_;
+  std::optional<Wrap32> isn_{};
 };
