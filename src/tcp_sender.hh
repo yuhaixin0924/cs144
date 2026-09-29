@@ -5,13 +5,18 @@
 #include "tcp_sender_message.hh"
 
 #include <functional>
+struct sent_but_unacked
+{
+ uint64_t begin_abs;// 报文起始的绝对序列号
+ TCPSenderMessage message;// seqno、SYN、payload、FIN、RST
+};
 
 class TCPSender
 {
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
   TCPSender( ByteStream&& input, Wrap32 isn, uint64_t initial_RTO_ms )
-    : input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms )
+    : input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms ),current_RTO_ms_(initial_RTO_ms)
   {}
 
   /* Generate an empty TCPSenderMessage */
@@ -38,8 +43,17 @@ public:
 
 private:
   Reader& reader() { return input_.reader(); }
-
+  bool syn_sent_{};
   ByteStream input_;
-  Wrap32 isn_;
-  uint64_t initial_RTO_ms_;
+  Wrap32 isn_;//Initial Sequence Number，即本方向的初始 TCP 序列号
+  uint64_t initial_RTO_ms_;//Retransmission Timeout，重传超时时间，保存最初设定的超时时长
+  std::deque<sent_but_unacked>sent_but_unacked_;
+  uint64_t acked_abs_{};
+  uint64_t next_abs_{};
+  uint64_t window_size_{1};
+  bool fin_sent_ {};
+
+  uint64_t elapsed_ms_ {};
+  uint64_t current_RTO_ms_ {};
+  uint64_t consecutive_retx_ {};
 };
