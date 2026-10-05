@@ -20,11 +20,60 @@ void Router::add_route( const uint32_t route_prefix,
        << static_cast<int>( prefix_length ) << " => " << ( next_hop.has_value() ? next_hop->ip() : "(direct)" )
        << " on interface " << interface_num << "\n";
 
-  debug( "unimplemented add_route() called" );
+  RouteEntry entry{};
+  entry.route_prefix=route_prefix;
+  entry.prefix_length=prefix_length;
+  entry.next_hop=next_hop;
+  entry.interface_num=interface_num;
+  routes_.push_back(entry);
 }
 
 // Go through all the interfaces, and route every incoming datagram to its proper outgoing interface.
 void Router::route()
 {
-  debug( "unimplemented route() called" );
+  for(const auto&input_interface:interfaces_){
+    auto& received=input_interface->datagrams_received();
+    while(!received.empty()){
+      InternetDatagram dgram=move(received.front());
+      received.pop();
+
+      if(dgram.header.ttl<=1){
+        continue;
+      }
+      const RouteEntry* best =find_best_route(dgram.header.dst);
+      if(best == nullptr){
+        continue;
+      }
+      dgram.header.ttl--;
+      dgram.header.compute_checksum();
+      Address next_hop= Address::from_ipv4_numeric( dgram.header.dst );//没有默认构造函数只能先按照默认情况处理
+      if(best->next_hop.has_value()){
+        next_hop=best->next_hop.value();
+      }
+      const auto& output_interface=interface(best->interface_num);
+      output_interface->send_datagram(dgram,next_hop);
+    }
+  }
+}
+bool Router::route_matches(uint32_t destination,const RouteEntry& entry) const {
+  if(entry.prefix_length==0){
+    return true;
+  }
+  uint32_t right_shift_length=32-entry.prefix_length;
+  if((destination>>right_shift_length)==(entry.route_prefix>>right_shift_length)){
+    return true;
+  }
+  return false;
+}
+const Router::RouteEntry* Router::find_best_route(uint32_t destination) const{
+  const RouteEntry* best=nullptr;
+  for(const auto&entry:routes_){
+    if(!route_matches(destination,entry)){
+      continue;
+    }
+    if(best==nullptr||entry.prefix_length>best->route_prefix){
+      best=&entry;
+    }
+  }
+  return best;
 }
